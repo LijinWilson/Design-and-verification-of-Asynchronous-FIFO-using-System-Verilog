@@ -1,0 +1,9 @@
+1) Install iverilog: 
+    sudo apt-get update
+    sudo apt-get install -y iverilog
+
+2) Compile the files together into an executable output named 'sim'
+    iverilog -g2012 -o sim design.sv tb.sv
+
+3) Run the simulation using the vvp runtime engine
+    vvp sim

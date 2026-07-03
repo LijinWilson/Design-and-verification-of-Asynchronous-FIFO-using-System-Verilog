@@ -1,0 +1,118 @@
+>> FIFO (First In First Out)
+    - It is an memory buffer or queue, which ensures first written data is first read data.
+
+>> Two Types:
+    - Synchronous FIFO: it uses same clock for read and write operation.
+    - Asynchronous: It uses different clock for read and write operation.
+
+>> Use Cases or Need?: 
+    - Consider a situation where the two device communicates at different clock speed.
+    - CPU is running at 1Mhz and peripherals is running at 100Mhz, how the exchanging of data happens reliably.
+
+>> It contain 2 handlers (Block diagram in asset file - asynch_fifo_block_daigram.png):
+    1) Read point handle:
+        - it will generate the full flag.
+        - It generate two pointer:
+            - 1) Binary read pointer.
+            - 2) Gray read pointer
+    2) Write point handle: 
+        - It wil generate empty flag
+        - It generate two pointer:
+            - 1) Binary read pointer.
+            - 2) Gray read pointer
+    - we will pass write grey pointer with write clock domain.
+    - we will pass read grey pointer with write clock domain.
+
+>> Signals:
+    - wr_en: write enable                     rd_en: read enable
+    - wr_clk: Write clock                     rd_clk: read clock
+    - data_in: write data                     rd_rst: read reset
+    - wr_rst: write reset                     data_out: read data
+    - full: FIFO is full                      empty: FIFO is empty
+    - 
+    - wr_ptr_bin:-Binary write pointer        rd_ptr_bin:- Binary read pointer
+    - wr_ptr_gray:- Gray write pointer        rd_ptr_gray:-Gray read pointer
+    - 
+    - rd_ptr_gray_sync_wr1,                   wr_ptr_gray_sync_rd1,
+    - rd_ptr_gray_sync_wr2;                   wr_ptr_gray_sync_rd2;
+
+>> Key challenges:
+    - Metastability(o/p is neither 0 or 1) due to clock domain crossing(read and write operation is happening in 2 different clock).
+    - Safe pointer synchronization(need to update the read and write pointer carefully).
+    - Full and empty flag are tricky because clock are independent.
+
+    -> METASTABILITY: 
+        * FF receive signals too close to the clock edge violating setup and hold time. output become unstable at that time,
+          it wont be 0 or 1.
+    -> CLOCK DOMAIN CROSSING:
+        * When data is transferred between one clock domain to another clock domain. when both domain are running at two different speed.
+        * When clock become asynchronous, the data can arrive at mid transition, leading to Metastability.
+
+    -> METASTABILITY SOLUTION:
+        * By using 2-FF Synchronizer(asset/2-FF synchronizer.png):
+            - First FF will go to the metastability. 2nd one will capture the stable output.
+
+>> Implement GRAY CODE for pointer:
+    - while passing pointer from one domain to another domain. we use gray code.
+    - GRAY CODE will allow to change one bit at a time.
+    - It also reduces the METASTABILITY.
+
+>> WORKING:
+
+    1) In Asynchronous Fifo, we pass:-
+
+        * Write pointer (in gray code) to read clock domain
+        * Read pointer(in gray code) to the write clock domain
+
+    2) Then, we synchronize them using 2-FlipFlop synchronization :-
+
+        * Write pointer is synchronized into read-clock domain.
+        * Read pointer is synchronized into write-clock domain.
+        * Pointers are exchanged between domains to detect full/empty status.
+        * This ensures the FIFO does **not overflow or underflow** during asynchronous operation.
+
+>> USE CASES or Actual Working:
+    - wclk: it is for write clock domain
+    - rclk: It is for read clock domain.
+
+    - read Pointer generate 2 handle 1) binary read pointer and 2) gray read Pointer.
+    - Write pointer handler generate 2 handle 1) Binary write pointer and 2) gray write pointer.
+        - gray read pointer is pass to the write pointer handle through 2 FF synchronizer to avoid metastability and vice versa in gray write pointer.
+
+>> SETTING FULL and EMPTY FLAG 
+    -> FULL Condition: 
+        - Inside the write pointer handler it contain one output gray write pointer and one input g-rptr_sync, by comparing both and generate the FULL condition.
+    -> EMPTY Condition:
+        - Read pointer handler contain one output read gray pointer and one input g_wptr_sync, by comparing both and generate EMPTY condition.  
+
+>> FIFO DEPTH:
+    - number of words that a FIFO can hold at a time.
+    - why it is importand?
+        - If we take too small: It can cause overflow and loss of data will happen.
+        - If we take too large: It can losses like power, area and increase latency.
+
+    >> FIFO DEPTH CALCULATION:
+
+        **Problem Statement**
+        
+        * Freq. Of Write (Fw): 100MHz
+        * Freq. of read (Frd):  50MHz
+        * Burst Data: 100 bytes.
+        
+        ---
+        
+        **Calculation**
+        
+        * Time taken for one write = 1/100Mhz = 10ns
+        * Time taken to write 100 bytes = 100 x 10 = 1000ns
+
+        * Time taken for 1 read = 1/50MHz = 20ns
+        * In 1000ns, bytes read = 1000/20 = 50 bytes.
+
+        100 bytes of data is coming and only 50 bytes of data is reading.
+        So FIFO Depth = 100(write) - 50(read) = 50; 
+
+>> DESIGN FULL and EMPTY FLAG
+    - assign empty = (rd_ptr_gray_to_bin == wr_ptr_gray_sync_rd2_to_bin);
+    - assign full = (wr_ptr_gray_to_bin[addr_width] != rd_ptr_gray_sync_wr2_to_bin[addr_width]) &&
+              (wr_ptr_gray_to_bin[addr_width-1:0] == rd_ptr_gray_sync_wr2_to_bin[addr_width-1:0]);
