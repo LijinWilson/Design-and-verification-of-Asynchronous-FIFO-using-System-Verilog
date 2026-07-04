@@ -1,0 +1,24 @@
+>> SYSTEM VERILOG
+    - Architecture of the SV tb is mentioned inside the asset/system_verilog_tb_architecture.png.
+    - Components:
+        1) Generator: it generate stimulus, send it to the driver through transaction.
+        2) Transaction: It act likes an packet, which is used to send and receive data.
+        3) Driver: It will send the data to interface.
+        4) Monitor: It is an passive element, it just observe the output from the interface and pass the result to the interface.
+        5) ScoreBoard: It will compare the  golden result with the result coming from the interface(DUT).
+
+>> WORK FLOW:
+    Test
+    ├── Generator
+    │   ├── (sends transaction via mailbox)
+    │   └── Driver
+    │       ├── (drives interface signals)
+    │       └── DUT
+    │
+    └── Monitor
+        ├── (reads interface signals)
+        ├── (sends observed transaction via mailbox)
+        └── Scoreboard
+            ├── (computes expected)
+            └── (compares with DUT result)
+>> 
