@@ -151,3 +151,76 @@
         add_user_transaction()   -> Store user transaction in queue.
         run()                    -> Send transactions to Driver.
 
+
+>> DRIVER.SV
+
+    Purpose:
+        - Receives transactions from Generator through the mailbox.
+        - Converts transaction fields into DUT input signals.
+        - Drives the FIFO interface.
+
+    Connections:
+        Generator --> Mailbox(gen2drv) --> Driver --> Interface(vif) --> FIFO(DUT)
+
+    Members:
+        - virtual fifo_if vif : Handle to the DUT interface (used to drive signals).
+        - mailbox gen2drv     : Receives transactions from Generator.
+
+    Constructor:
+        - Stores interface and mailbox handles for later use.
+
+    -------------------------------------------------------------------------------
+    run() Workflow
+    -------------------------------------------------------------------------------
+
+    1. Wait forever for a transaction.
+        gen2drv.get(tr);
+
+    2. Check Write Request (tr.wr_en)
+        |
+        |-- Wait for write clock edge.
+        |-- Check FIFO is NOT full and NOT in reset.
+        |-- Drive:
+                wr_en = 1
+                data_in = tr.data
+        |-- Next clock:
+                wr_en = 0
+        |-- Print write message.
+
+    3. Check Read Request (tr.rd_en)
+        |
+        |-- Wait few read clocks (FIFO flag synchronization).
+        |-- Check FIFO is NOT empty and NOT in reset.
+        |-- Drive:
+                rd_en = 1
+        |-- Next clock:
+                rd_en = 0
+        |-- Print read message.
+
+    -------------------------------------------------------------------------------
+    Why these checks?
+    -------------------------------------------------------------------------------
+
+    !vif.full
+        -> Prevent writing into a full FIFO (avoids overflow).
+
+    !vif.empty
+        -> Prevent reading from an empty FIFO (avoids underflow).
+
+    !vif.wr_rst / !vif.rd_rst
+        -> Do not perform operations while FIFO is in reset.
+
+    @(posedge vif.wr_clk)
+        -> Write only on the write clock edge.
+
+    @(posedge vif.rd_clk)
+        -> Read only on the read clock edge.
+
+    repeat(3)
+        -> Gives asynchronous FIFO time to synchronize the 'empty' flag before reading.
+
+    Remember:
+        - Driver NEVER creates transactions.
+        - Driver NEVER checks data correctness.
+        - Driver ONLY drives DUT signals based on received transactions.
+
