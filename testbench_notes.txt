@@ -21,4 +21,45 @@
         └── Scoreboard
             ├── (computes expected)
             └── (compares with DUT result)
->> 
+
+
+>> INTERFACE.SV 
+    -> We are using parametrized interface?
+        - The interface is parameterized mainly for reusability and scalability. Instead of creating separate interfaces for 8-bit, 16-bit, or 32-bit FIFOs,
+            a single interface can support any data width by changing only the parameter value. This also improves maintainability,
+            avoids port-width mismatches between the DUT and verification environment, and follows industry-standard IP design practices where modules and interfaces
+            are written to be configurable rather than hardcoded.
+
+    -> MODPORT
+        - Modport defines the direction of signals from the perspective of the module using the interface.
+        
+        - Example: Why is FULL an input?
+
+            Who knows when FIFO is full?
+            The FIFO.
+            FIFO ---> full
+
+            The Testbench only checks it.
+            if(vif.full)
+            So:
+            input full;
+        - Example 2: Why is WR_EN an output?
+
+            Who decides when to write?
+            The Driver.
+            vif.wr_en = 1;
+
+            So the Testbench writes wr_en.
+            output wr_en;
+    
+    -> Easy trick (don't memorize)
+
+        * Just ask yourself one question for every signal:
+
+        * "Who is driving this signal?"
+
+        * If Testbench drives it → OUTPUT in Tb modport.
+        * If Testbench only observes it → INPUT in Tb modport.
+
+>> TRANSACTION.SV
+    - 
