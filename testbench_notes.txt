@@ -224,3 +224,29 @@
         - Driver NEVER checks data correctness.
         - Driver ONLY drives DUT signals based on received transactions.
 
+MONITOR.SV
+    
+    Purpose:
+        - Observes FIFO signals (does NOT drive them).
+        - Captures actual Write/Read operations.
+        - Sends captured transactions to the Scoreboard.
+
+    Workflow:
+        1. Starts monitor_write() and monitor_read() in parallel.
+        2. Waits for write/read clock edge.
+        3. Checks if a valid operation occurred.
+            Write : wr_en = 1 && !full
+            Read  : rd_en = 1 && !empty
+        4. Creates a new transaction.
+        5. Captures data from the interface.
+        6. Sends a copy of the transaction to the Scoreboard via mailbox.
+
+    Remember:
+        - Driver drives the signals.
+        - Monitor only watches the signals.
+        - wr_en tells the monitor that a write occurred.
+        - rd_en tells the monitor that a read occurred.
+        - tr.copy() sends a separate transaction object to avoid modifying the original.
+
+    Flow:
+        FIFO Signals --> Monitor --> Mailbox(mon2scb) --> Scoreboard
