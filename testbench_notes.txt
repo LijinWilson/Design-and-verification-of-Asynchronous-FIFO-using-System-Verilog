@@ -62,4 +62,29 @@
         * If Testbench only observes it → INPUT in Tb modport.
 
 >> TRANSACTION.SV
-    - 
+
+    Purpose:
+        - Represents one FIFO operation.
+        - Travels: Generator -> Driver -> Monitor -> Scoreboard.
+
+    Variables:
+        - data          : Random data for FIFO.
+        - wr_en         : Random write enable.
+        - rd_en         : Random read enable.
+        - expected_data : Expected value used by Scoreboard.
+
+    Functions:
+        - new()      : Initializes variables to known values (avoids X).
+        - display()  : Prints transaction for debugging.
+        - copy()     : Creates and returns a NEW transaction object with the same values.
+                        Used by Monitor to avoid modifying the original transaction.
+        - compare()  : Compares current transaction with another transaction.
+                    Returns 1 = Match, 0 = Mismatch (used by Scoreboard).
+
+    Keywords:
+        - this        : Refers to the current transaction object.
+        - transaction : Return type of copy() (returns a transaction object).
+
+    Remember:
+        copy()    -> Duplicate Object
+        compare() -> Compare Objects
