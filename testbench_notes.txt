@@ -88,3 +88,66 @@
     Remember:
         copy()    -> Duplicate Object
         compare() -> Compare Objects
+
+>> GENERATOR.SV
+    -> transaction user_queue[$]; 
+        - [$]: It is an QUEUE, which is an dynamic array whose size grows and shrinks automatically.
+        - Create a queue that can store transaction objects.
+
+    Purpose:
+        - Generates transactions and sends them to the Driver through the mailbox.
+        - Supports two modes:
+            1. Random Mode      -> Generator creates random transactions.
+            2. User-defined Mode -> User/Test provides transactions manually.
+
+    Variables:
+        - random_mode   : Selects operating mode.
+                        1 = Random Mode (default)
+                        0 = User-defined Mode
+
+        - user_queue[$] : Queue that stores user-created transaction objects.
+                        (Generator DOES NOT create these transactions.)
+
+        - gen2drv       : Mailbox used to send transactions to the Driver.
+
+        - num_transaction : Number of random transactions to generate.
+
+        new(mailbox gen2drv)
+        - Connects generator to the mailbox.
+        - Sets default mode to Random.
+
+        add_user_transaction(transaction tr)
+        - Receives a transaction object from the Test.
+        - Stores it at the end of user_queue using push_back().
+        - Does NOT create the transaction.
+
+        run()
+
+    Random Mode:
+    ------------
+        1. Create a new transaction.
+        2. Randomize it.
+        3. Ensure (wr_en || rd_en) is true.
+        4. Display the transaction.
+        5. Send it to Driver using gen2drv.put().
+
+    User-defined Mode:
+    ------------------
+        1. Read each transaction from user_queue.
+        2. Display it.
+        3. Send it to Driver using gen2drv.put().
+
+    Flow:
+    -----
+        Random Mode:
+        Generator -> Create -> Randomize -> Mailbox -> Driver
+
+        User-defined Mode:
+        Test -> user_queue -> Mailbox -> Driver
+
+    Remember:
+    ---------
+        new()                    -> Connect mailbox.
+        add_user_transaction()   -> Store user transaction in queue.
+        run()                    -> Send transactions to Driver.
+
